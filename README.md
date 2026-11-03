@@ -4,9 +4,7 @@ Baton turns a team's scattered project activity into a reviewed, cited handover 
 
 > **Status note:** fill in every `[TODO]` before submitting. Tick a box only for what a judge can actually run today. Do not describe planned features as working.
 
-- **Live demo:** [TODO: deployed link]
-- **Demo video (optional):** [TODO: link]
-- **Round 1 plan:** [TODO: link to Baton_Round_1_Plan.pdf]
+- **Live demo:** (https://frontend-sepia-one-6krsa8rshl.vercel.app/)
 - **Author:** Anandha Lakshmi RM (Team Baton, one-person team)
 
 ---
