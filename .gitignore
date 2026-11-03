@@ -1,0 +1,11 @@
+repomix-output.xml
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.env
+dist/
+.next/
+.pytest_cache/
+.ruff_cache/

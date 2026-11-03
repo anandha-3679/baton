@@ -1,0 +1,9 @@
+# Global Rules
+Output unified diffs only, no entire file rewrites. Zero conversational preamble.
+
+# Python Rules
+Enforce PEP8 strictly.
+Mandate that all test commands use `pytest -q`.
+
+# JS / TS Rules
+Enforce strict functional component boundaries and quiet test execution.

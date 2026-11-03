@@ -1,0 +1,9 @@
+output-format = "concise"
+preview = false
+line-length = 120
+
+[lint]
+select = ["E", "F"]
+ignore = []
+
+[lint.per-file-ignores]
