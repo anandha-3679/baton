@@ -2,6 +2,7 @@ import json
 import os
 import re
 from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 import httpx
 from backend.models import (
     Claim,
@@ -14,6 +15,8 @@ from backend.verification import (
     detect_and_mark_conflicts,
     evaluate_raw_candidate,
 )
+
+load_dotenv()
 
 SYSTEM_EXTRACTION_PROMPT = """You are Baton's structured claim extraction engine.
 Your sole job is to extract explicit claims from the provided redacted source material into a strict JSON list.
@@ -179,43 +182,109 @@ def parse_llm_json_response(raw_text: str, source_id: str) -> List[RawClaimCandi
     return candidates
 
 
-async def call_llm_extractor(
+async def call_groq_extractor(
     redacted_content: str,
     source_id: str,
-    api_key: Optional[str] = None,
-    model: str = "gemini-1.5-flash",
+    api_key: str,
+    model: str = "llama-3.3-70b-versatile",
 ) -> List[RawClaimCandidate]:
-    """
-    Call Gemini LLM with structured schema.
-    If no API key is provided, falls back seamlessly to the heuristic engine.
-    """
-    key = api_key or os.getenv("GEMINI_API_KEY")
-    if not key:
-        return extract_candidates_heuristic(redacted_content, source_id)
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
-    prompt = (
-        f"{SYSTEM_EXTRACTION_PROMPT}\n\n"
+    """Call Groq API using OpenAI-compatible chat completion endpoint."""
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    user_prompt = (
         f"<source_data>\n{redacted_content}\n</source_data>\n\n"
-        "Output JSON array:"
+        "Extract all claims from <source_data> and output ONLY a JSON array:"
     )
-
-    payload: Dict[str, Any] = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json"},
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_EXTRACTION_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ],
+        "temperature": 0.0,
+        "response_format": {"type": "json_object"},
     }
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(url, json=payload)
+            response = await client.post(url, headers=headers, json=payload)
             if response.status_code == 200:
                 res_data = response.json()
-                text = res_data["candidates"][0]["content"]["parts"][0]["text"]
-                return parse_llm_json_response(text, source_id)
+                content = res_data["choices"][0]["message"]["content"]
+                # In json_object mode, Groq might return {"claims": [...]} or a direct array
+                parsed = json.loads(content)
+                if isinstance(parsed, dict):
+                    # extract the first list found in dict values
+                    for val in parsed.values():
+                        if isinstance(val, list):
+                            return [
+                                RawClaimCandidate(
+                                    type=ClaimType(item["type"]),
+                                    title=item.get("title", ""),
+                                    description=item.get("description", ""),
+                                    quote=item.get("quote", ""),
+                                    source_id=source_id,
+                                    owner=item.get("owner"),
+                                    deadline=item.get("deadline"),
+                                    status=item.get("status"),
+                                )
+                                for item in val
+                                if isinstance(item, dict) and "type" in item
+                            ]
+                elif isinstance(parsed, list):
+                    return parse_llm_json_response(content, source_id)
     except Exception:
         pass
 
-    # Safe fallback if network error or invalid response
+    return []
+
+
+async def call_llm_extractor(
+    redacted_content: str,
+    source_id: str,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+) -> List[RawClaimCandidate]:
+    """
+    Call configured LLM (Groq or Gemini) with structured schema.
+    If no API key is provided, falls back seamlessly to the heuristic engine.
+    """
+    groq_key = api_key or os.getenv("GROQ_API_KEY")
+    if groq_key and (groq_key.startswith("gsk_") or os.getenv("LLM_PROVIDER") == "groq"):
+        groq_model = model or os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+        candidates = await call_groq_extractor(redacted_content, source_id, groq_key, groq_model)
+        if candidates:
+            return candidates
+
+    gemini_key = api_key or os.getenv("GEMINI_API_KEY")
+    if gemini_key:
+        gemini_model = model or os.getenv("LLM_MODEL", "gemini-1.5-flash")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{gemini_model}:generateContent?key={gemini_key}"
+        prompt = (
+            f"{SYSTEM_EXTRACTION_PROMPT}\n\n"
+            f"<source_data>\n{redacted_content}\n</source_data>\n\n"
+            "Output JSON array:"
+        )
+        payload: Dict[str, Any] = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.0, "responseMimeType": "application/json"},
+        }
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(url, json=payload)
+                if response.status_code == 200:
+                    res_data = response.json()
+                    text = res_data["candidates"][0]["content"]["parts"][0]["text"]
+                    candidates = parse_llm_json_response(text, source_id)
+                    if candidates:
+                        return candidates
+        except Exception:
+            pass
+
+    # Safe fallback if network error, invalid response, or no API key provided
     return extract_candidates_heuristic(redacted_content, source_id)
 
 
