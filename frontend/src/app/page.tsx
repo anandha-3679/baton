@@ -13,6 +13,7 @@ export default function Home() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [receiverClaims, setReceiverClaims] = useState<Claim[]>([]);
   const [receiverMetadata, setReceiverMetadata] = useState<ReceiverFilterMetadata | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchReceiverClaims = async () => {
     try {
@@ -31,6 +32,7 @@ export default function Home() {
     let ignore = false;
     async function loadInitialData() {
       try {
+        setLoading(true);
         const [sourcesRes, claimsRes, receiverRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/sources`),
           fetch(`${API_BASE_URL}/api/claims`),
@@ -45,6 +47,8 @@ export default function Home() {
         }
       } catch {
         // API offline
+      } finally {
+        if (!ignore) setLoading(false);
       }
     }
     loadInitialData();
@@ -201,7 +205,7 @@ export default function Home() {
           3. Switch to <strong>Receiver View</strong> to verify server-side role &amp; restricted-tag filtering.
         </div>
         <span style={{ color: "#a5b4fc", fontWeight: 600 }}>
-          {receiverClaims.length} Approved for Receiver &middot; {receiverMetadata?.restricted_claims_hidden_count ?? 0} Restricted Hidden
+          {loading ? "Connecting to backend..." : `${receiverClaims.length} Approved for Receiver · ${receiverMetadata?.restricted_claims_hidden_count ?? 0} Restricted Hidden`}
         </span>
       </div>
 
