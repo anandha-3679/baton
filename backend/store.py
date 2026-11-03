@@ -50,8 +50,15 @@ class ProjectStore:
 
     def seed_synthetic_demo(self) -> None:
         """Pre-load synthetic benchmark and pre-approve safe claims for Receiver usability."""
+        # Find demo directory whether running from repo root or backend/ subfolder
         demo_dir = Path("data/synthetic_demo")
         if not demo_dir.exists():
+            demo_dir = Path(__file__).resolve().parent.parent / "data" / "synthetic_demo"
+        if not demo_dir.exists():
+            demo_dir = Path(__file__).resolve().parent / "data" / "synthetic_demo"
+
+        if not demo_dir.exists():
+            print(f"[ProjectStore] WARNING: synthetic demo directory not found at {demo_dir}")
             return
 
         files_to_tags = [
