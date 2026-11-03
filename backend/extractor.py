@@ -4,19 +4,40 @@ import re
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 import httpx
-from backend.models import (
-    Claim,
-    ClaimType,
-    RawClaimCandidate,
-    SourceSnapshot,
-)
-from backend.redaction import redact_secrets_and_pii
-from backend.verification import (
-    detect_and_mark_conflicts,
-    evaluate_raw_candidate,
-)
 
-load_dotenv()
+# Only load local .env if present in current directory or backend/ directory
+_env_path = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(_env_path):
+    load_dotenv(_env_path)
+elif os.path.exists(".env"):
+    load_dotenv(".env")
+
+try:
+    from backend.models import (
+        Claim,
+        ClaimType,
+        RawClaimCandidate,
+        SourceSnapshot,
+    )
+    from backend.redaction import redact_secrets_and_pii
+    from backend.verification import (
+        detect_and_mark_conflicts,
+        evaluate_raw_candidate,
+    )
+except ModuleNotFoundError:
+    from models import (
+        Claim,
+        ClaimType,
+        RawClaimCandidate,
+        SourceSnapshot,
+    )
+    from redaction import redact_secrets_and_pii
+    from verification import (
+        detect_and_mark_conflicts,
+        evaluate_raw_candidate,
+    )
+
+
 
 SYSTEM_EXTRACTION_PROMPT = """You are Baton's structured claim extraction engine.
 Your sole job is to extract explicit claims from the provided redacted source material into a strict JSON list.

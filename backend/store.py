@@ -1,22 +1,41 @@
 from pathlib import Path
 import uuid
 from typing import Dict, List, Optional
-from backend.extractor import extract_candidates_heuristic, run_extraction_pipeline
-from backend.models import (
-    AccessTag,
-    Claim,
-    EvidenceStatus,
-    ReceiverFilterMetadata,
-    ReceiverHandoverResponse,
-    ReviewStatus,
-    SourceSnapshot,
-)
-from backend.redaction import compute_sha256, redact_secrets_and_pii
-from backend.verification import (
-    detect_and_mark_conflicts,
-    evaluate_raw_candidate,
-    filter_claims_for_receiver,
-)
+
+try:
+    from backend.extractor import extract_candidates_heuristic, run_extraction_pipeline
+    from backend.models import (
+        AccessTag,
+        Claim,
+        EvidenceStatus,
+        ReceiverFilterMetadata,
+        ReceiverHandoverResponse,
+        ReviewStatus,
+        SourceSnapshot,
+    )
+    from backend.redaction import compute_sha256, redact_secrets_and_pii
+    from backend.verification import (
+        detect_and_mark_conflicts,
+        evaluate_raw_candidate,
+        filter_claims_for_receiver,
+    )
+except ModuleNotFoundError:
+    from extractor import extract_candidates_heuristic, run_extraction_pipeline
+    from models import (
+        AccessTag,
+        Claim,
+        EvidenceStatus,
+        ReceiverFilterMetadata,
+        ReceiverHandoverResponse,
+        ReviewStatus,
+        SourceSnapshot,
+    )
+    from redaction import compute_sha256, redact_secrets_and_pii
+    from verification import (
+        detect_and_mark_conflicts,
+        evaluate_raw_candidate,
+        filter_claims_for_receiver,
+    )
 
 
 class ProjectStore:

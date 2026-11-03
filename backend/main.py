@@ -1,9 +1,21 @@
+import os
+import sys
 from typing import List, Optional
+
+# Ensure project root is in sys.path regardless of whether Root Directory is "." or "backend"
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from backend.models import AccessTag, Claim, ReceiverHandoverResponse, ReviewStatus, SourceSnapshot
-from backend.store import store
+
+try:
+    from backend.models import AccessTag, Claim, ReceiverHandoverResponse, ReviewStatus, SourceSnapshot
+    from backend.store import store
+except ModuleNotFoundError:
+    from models import AccessTag, Claim, ReceiverHandoverResponse, ReviewStatus, SourceSnapshot
+    from store import store
 
 app = FastAPI(
     title="Baton Handover API",

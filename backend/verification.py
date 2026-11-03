@@ -1,15 +1,28 @@
 import uuid
 from typing import Dict, List, Optional
-from backend.models import (
-    AccessTag,
-    Claim,
-    ClaimType,
-    EvidenceStatus,
-    RawClaimCandidate,
-    ReviewStatus,
-    SourceSnapshot,
-    merge_access_tags,
-)
+
+try:
+    from backend.models import (
+        AccessTag,
+        Claim,
+        ClaimType,
+        EvidenceStatus,
+        RawClaimCandidate,
+        ReviewStatus,
+        SourceSnapshot,
+        merge_access_tags,
+    )
+except ModuleNotFoundError:
+    from models import (
+        AccessTag,
+        Claim,
+        ClaimType,
+        EvidenceStatus,
+        RawClaimCandidate,
+        ReviewStatus,
+        SourceSnapshot,
+        merge_access_tags,
+    )
 
 
 def verify_quote_in_snapshot(quote: str, snapshot_content: str) -> bool:
